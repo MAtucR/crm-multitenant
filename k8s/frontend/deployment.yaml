@@ -24,7 +24,7 @@ spec:
       containers:
         - name: frontend
           # CI actualiza este tag automáticamente en cada push a main
-          image: ghcr.io/matucrr/crm-multitenant/crm-frontend:latest
+          image: ghcr.io/MAtucR/crm-multitenant/crm-frontend:sha-c47e11f
           ports:
             - containerPort: 3000
           env:
