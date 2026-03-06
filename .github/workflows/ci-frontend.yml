@@ -41,17 +41,16 @@ jobs:
         working-directory: frontend
         run: npm run lint
 
-      - name: Build (type check incluido)
+      - name: Build
         working-directory: frontend
         run: npm run build
         env:
-          # Variables dummy para que Next.js compile sin Keycloak real
           NEXTAUTH_URL: http://localhost:3000
           NEXTAUTH_SECRET: build-secret
           KEYCLOAK_ID: crm-frontend
           KEYCLOAK_SECRET: build-secret
           KEYCLOAK_ISSUER: http://localhost:8080/realms/crm
-          NEXT_PUBLIC_API_URL: http://localhost:8081
+          API_URL: http://localhost:8081
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
@@ -80,6 +79,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Make GHCR package public
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PACKAGE_NAME="crm-multitenant%2Fcrm-frontend"
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            /user/packages/container/${PACKAGE_NAME} \
+            -f visibility=public || true
 
       - name: Update k8s image tag
         if: github.event_name != 'pull_request'

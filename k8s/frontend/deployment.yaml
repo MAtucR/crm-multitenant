@@ -20,9 +20,7 @@ spec:
         metrics.dynatrace.com/path: '/api/health'
         dt.mz: 'CRM-SaaS'
     spec:
-      # BUG FIX: imagePullSecrets necesario si el paquete GHCR es privado.
-      imagePullSecrets:
-        - name: ghcr-secret
+      # Sin imagePullSecrets: el CI pone el package como público automáticamente
       containers:
         - name: frontend
           # CI actualiza este tag automáticamente en cada push a main
@@ -46,8 +44,6 @@ spec:
                   key: keycloak-secret
             - name: KEYCLOAK_ISSUER
               value: http://keycloak:8080/realms/crm
-            # BUG FIX: API_URL en vez de NEXT_PUBLIC_API_URL (server-side only,
-            # nunca debe llegar al browser)
             - name: API_URL
               value: http://crm-backend:8081
           resources:

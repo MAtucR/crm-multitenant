@@ -21,12 +21,7 @@ spec:
         metrics.dynatrace.com/path: '/actuator/prometheus'
         dt.mz: 'CRM-SaaS'
     spec:
-      # BUG FIX: imagePullSecrets necesario si el paquete GHCR es privado.
-      # Crear con: kubectl create secret docker-registry ghcr-secret \
-      #   --docker-server=ghcr.io --docker-username=MAtucR \
-      #   --docker-password=<PAT> -n crm-saas
-      imagePullSecrets:
-        - name: ghcr-secret
+      # Sin imagePullSecrets: el CI pone el package como público automáticamente
       containers:
         - name: backend
           # CI actualiza este tag automáticamente en cada push a main
