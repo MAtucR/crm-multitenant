@@ -1,0 +1,27 @@
+# Perfil de tests: usa H2 en memoria para no depender de Postgres
+# Se activa automáticamente al correr mvn test con -Dspring.profiles.active=test
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # En tests usamos un issuer fake; los tests de seguridad mockean el JWT
+          issuer-uri: http://localhost:9090/realms/test
+
+management:
+  tracing:
+    sampling:
+      probability: 0.0

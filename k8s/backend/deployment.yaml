@@ -21,6 +21,12 @@ spec:
         metrics.dynatrace.com/path: '/actuator/prometheus'
         dt.mz: 'CRM-SaaS'
     spec:
+      # BUG FIX: imagePullSecrets necesario si el paquete GHCR es privado.
+      # Crear con: kubectl create secret docker-registry ghcr-secret \
+      #   --docker-server=ghcr.io --docker-username=MAtucR \
+      #   --docker-password=<PAT> -n crm-saas
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: backend
           # CI actualiza este tag automáticamente en cada push a main
@@ -59,9 +65,11 @@ spec:
               port: 8081
             initialDelaySeconds: 20
             periodSeconds: 10
+            failureThreshold: 5
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8081
-            initialDelaySeconds: 30
+            initialDelaySeconds: 40
             periodSeconds: 15
+            failureThreshold: 3

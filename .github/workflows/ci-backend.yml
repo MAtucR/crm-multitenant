@@ -19,8 +19,8 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      contents: write      # para hacer commit del nuevo tag
-      packages: write      # para pushear a GHCR
+      contents: write
+      packages: write
 
     steps:
       - name: Checkout
@@ -35,7 +35,9 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        run: mvn test -q
+        # BUG FIX: Agregar perfil 'test' para usar H2 en vez de Postgres.
+        # Sin esto, Spring Boot intenta conectar a Postgres que no existe en CI y falla.
+        run: mvn test -q -Dspring.profiles.active=test
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
@@ -65,8 +67,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Actualizar el tag de la imagen en el manifiesto de k8s
-      # ArgoCD detecta el cambio y despliega automáticamente
       - name: Update k8s image tag
         if: github.event_name != 'pull_request'
         run: |
