@@ -1,0 +1,24 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+
+# Node
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env*.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+
+# K8s secrets
+k8s/secrets/
