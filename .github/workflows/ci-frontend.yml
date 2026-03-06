@@ -30,21 +30,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # BUG FIX: Removido cache-dependency-path porque package-lock.json
-          # no está en el repo. Se usa cache: npm solo si hay lock file.
-          # Por ahora se instala sin cache; se puede agregar después de npm install.
 
       - name: Install dependencies
         working-directory: frontend
-        # Usamos npm install en vez de npm ci porque no hay package-lock.json
         run: npm install
-
-      - name: Generate lock file for future cache
-        working-directory: frontend
-        run: |
-          if [ ! -f package-lock.json ]; then
-            echo "No lock file encontrado, generado por npm install"
-          fi
 
       - name: Lint
         working-directory: frontend
@@ -68,6 +57,11 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      # BUG FIX: setup-buildx es necesario para usar cache type=gha.
+      # Sin esto Docker usa el driver por defecto que no soporta cache export.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Extract Docker metadata
         id: meta
