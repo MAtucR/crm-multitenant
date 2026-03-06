@@ -1,0 +1,68 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: crm-backend
+
+  # ── Datasource principal (admin, para Flyway y provisioning) ──
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/crm}
+    username: ${SPRING_DATASOURCE_USERNAME:crm}
+    password: ${SPRING_DATASOURCE_PASSWORD:crm_secret}
+    driver-class-name: org.postgresql.Driver
+
+  # ── JPA / Hibernate ──
+  jpa:
+    hibernate:
+      ddl-auto: validate          # Flyway maneja el DDL
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Multitenancy: schema-per-tenant
+        multiTenancy: SCHEMA
+        tenant_identifier_resolver: com.crm.multitenancy.TenantIdentifierResolver
+        multi_tenant_connection_provider: com.crm.multitenancy.TenantConnectionProvider
+        default_schema: public
+    open-in-view: false
+
+  # ── Flyway (aplica migraciones en el schema de cada tenant) ──
+  flyway:
+    enabled: false               # Manejado programáticamente por TenantProvisioningService
+
+  # ── OAuth2 Resource Server (Keycloak JWT) ──
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8080/realms/crm}
+
+# ── Actuator ──
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# ── OpenTelemetry / OTLP ──
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}
+  resource:
+    attributes:
+      service.name: crm-backend
+      service.version: "1.0.0"
+
+# ── Logging JSON ──
+logging:
+  config: classpath:logback-spring.xml

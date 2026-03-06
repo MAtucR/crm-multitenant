@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- Appender JSON con TraceID/SpanID para Dynatrace -->
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <providers>
+        <timestamp/>
+        <logLevel/>
+        <loggerName/>
+        <message/>
+        <mdc/>           <!-- incluye traceId, spanId desde MDC de Micrometer -->
+        <arguments/>
+        <stackTrace/>
+      </providers>
+      <customFields>{"service":"crm-backend"}</customFields>
+    </encoder>
+  </appender>
+
+  <springProfile name="local">
+    <!-- Legible en desarrollo -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>%d{HH:mm:ss} %highlight(%-5level) [%blue(%X{traceId})] %cyan(%logger{36}) - %msg%n</pattern>
+      </encoder>
+    </appender>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
+
+  <springProfile name="!local">
+    <root level="INFO">
+      <appender-ref ref="JSON"/>
+    </root>
+  </springProfile>
+
+</configuration>
