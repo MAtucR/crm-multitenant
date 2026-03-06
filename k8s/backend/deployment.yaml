@@ -16,7 +16,6 @@ spec:
       labels:
         app: crm-backend
       annotations:
-        # ── Dynatrace: scraping de métricas Prometheus ──
         metrics.dynatrace.com/scrape: 'true'
         metrics.dynatrace.com/port: '8081'
         metrics.dynatrace.com/path: '/actuator/prometheus'
@@ -24,7 +23,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: ghcr.io/GITHUB_USER/crm-backend:latest  # reemplazar
+          # CI actualiza este tag automáticamente en cada push a main
+          image: ghcr.io/matucrr/crm-multitenant/crm-backend:latest
           ports:
             - containerPort: 8081
           env:
@@ -43,7 +43,7 @@ spec:
             - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
               value: http://keycloak:8080/realms/crm
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://dynatrace-collector:4318   # OneAgent o DT OTEL collector
+              value: http://dynatrace-collector:4318
             - name: SPRING_PROFILES_ACTIVE
               value: k8s
           resources:

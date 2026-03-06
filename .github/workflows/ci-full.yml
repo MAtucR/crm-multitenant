@@ -1,0 +1,25 @@
+name: CI — Full (ambos servicios)
+
+# Se ejecuta cuando cambia algo fuera de backend/ o frontend/ de forma aislada
+# o cuando se hace un tag de release
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  backend:
+    uses: ./.github/workflows/ci-backend.yml
+    permissions:
+      contents: write
+      packages: write
+
+  frontend:
+    uses: ./.github/workflows/ci-frontend.yml
+    permissions:
+      contents: write
+      packages: write
+    needs: backend   # esperar al backend por el git push del tag
