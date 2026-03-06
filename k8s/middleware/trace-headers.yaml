@@ -1,0 +1,13 @@
+# Traefik Middleware: propaga headers W3C Trace Context hacia el backend.
+# Referenciado en el Ingress del backend.
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: trace-headers
+  namespace: crm-saas
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+    # Traefik propaga traceparent/tracestate nativamente si
+    # se habilita el plugin de tracing en su config.

@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-backend
+  namespace: crm-saas
+  labels:
+    app: crm-backend
+    version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: crm-backend
+  template:
+    metadata:
+      labels:
+        app: crm-backend
+      annotations:
+        # ── Dynatrace: scraping de métricas Prometheus ──
+        metrics.dynatrace.com/scrape: 'true'
+        metrics.dynatrace.com/port: '8081'
+        metrics.dynatrace.com/path: '/actuator/prometheus'
+        dt.mz: 'CRM-SaaS'
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/GITHUB_USER/crm-backend:latest  # reemplazar
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/crm
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
+              value: http://keycloak:8080/realms/crm
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://dynatrace-collector:4318   # OneAgent o DT OTEL collector
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 15

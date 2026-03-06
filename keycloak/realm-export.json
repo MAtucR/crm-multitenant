@@ -1,0 +1,75 @@
+{
+  "realm": "crm",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "clients": [
+    {
+      "clientId": "crm-frontend",
+      "enabled": true,
+      "publicClient": false,
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "https://app.crm.example.com/*"
+      ],
+      "webOrigins": ["*"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "crm-backend",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "ADMIN",  "description": "Administrador del sistema" },
+      { "name": "AGENT",  "description": "Agente CRM" },
+      { "name": "VIEWER", "description": "Solo lectura" }
+    ]
+  },
+  "users": [
+    {
+      "username": "admin-acme",
+      "enabled": true,
+      "email": "admin@acme.com",
+      "credentials": [{ "type": "password", "value": "admin123", "temporary": false }],
+      "realmRoles": ["ADMIN"],
+      "attributes": { "tenant_id": ["acme"] }
+    },
+    {
+      "username": "agent-globex",
+      "enabled": true,
+      "email": "agent@globex.com",
+      "credentials": [{ "type": "password", "value": "agent123", "temporary": false }],
+      "realmRoles": ["AGENT"],
+      "attributes": { "tenant_id": ["globex"] }
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "tenant",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "true" },
+      "protocolMappers": [
+        {
+          "name": "tenant_id mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "defaultDefaultClientScopes": ["tenant", "profile", "email", "roles"]
+}

@@ -1,0 +1,74 @@
+version: '3.9'
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: crm
+      POSTGRES_PASSWORD: crm_secret
+      POSTGRES_DB: crm
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./backend/src/main/resources/db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U crm']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/crm
+      KC_DB_USERNAME: crm
+      KC_DB_PASSWORD: crm_secret
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/crm
+      SPRING_DATASOURCE_USERNAME: crm
+      SPRING_DATASOURCE_PASSWORD: crm_secret
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/crm
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
+      SPRING_PROFILES_ACTIVE: local
+    ports:
+      - '8081:8081'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: super_secret_change_me
+      KEYCLOAK_ID: crm-frontend
+      KEYCLOAK_SECRET: ""
+      KEYCLOAK_ISSUER: http://keycloak:8080/realms/crm
+      NEXT_PUBLIC_API_URL: http://backend:8081
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+
+volumes:
+  pg_data:
