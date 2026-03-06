@@ -1,22 +1,24 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Middleware de Next.js:
  * 1. Protege todas las rutas excepto /api/auth/**.
- * 2. Inyecta un header 'traceparent' W3C si no viene uno del cliente.
+ * 2. Inyecta un header 'traceparent' W3C si no viene del cliente.
  *    Formato: 00-<traceId 32hex>-<spanId 16hex>-01
+ *
+ * BUG FIX: Se eliminó la dependencia 'uuid' que no estaba en package.json.
+ * Se usa crypto.randomUUID() que es nativo en Node 14.17+ y Edge Runtime de Next.js.
  */
 export default withAuth(
   function middleware(req: NextRequest) {
     const response = NextResponse.next();
 
-    // Generar traceparent si no existe (primer hop)
     if (!req.headers.get('traceparent')) {
-      const traceId = uuidv4().replace(/-/g, '');
-      const spanId  = uuidv4().replace(/-/g, '').substring(0, 16);
+      // crypto.randomUUID() está disponible en el Edge Runtime de Next.js sin imports
+      const traceId = crypto.randomUUID().replace(/-/g, '');
+      const spanId  = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
       response.headers.set('traceparent', `00-${traceId}-${spanId}-01`);
     }
 

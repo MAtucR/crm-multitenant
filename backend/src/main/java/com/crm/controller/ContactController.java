@@ -3,12 +3,15 @@ package com.crm.controller;
 import com.crm.domain.Contact;
 import com.crm.repository.ContactRepository;
 import io.micrometer.observation.annotation.Observed;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -19,9 +22,10 @@ public class ContactController {
 
     private final ContactRepository repo;
 
+    /** Paginación: GET /api/contacts?page=0&size=20&sort=name,asc */
     @GetMapping
-    public List<Contact> list() {
-        return repo.findAll();
+    public Page<Contact> list(@PageableDefault(size = 20, sort = "name") Pageable pageable) {
+        return repo.findAll(pageable);
     }
 
     @GetMapping("/{id}")
@@ -33,13 +37,15 @@ public class ContactController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Contact create(@RequestBody Contact contact) {
+    public Contact create(@Valid @RequestBody Contact contact) {
+        // Asegurarse de que no se pase un ID para forzar upsert
+        contact.setId(null);
         return repo.save(contact);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Contact> update(@PathVariable UUID id,
-                                          @RequestBody Contact updated) {
+                                          @Valid @RequestBody Contact updated) {
         return repo.findById(id).map(c -> {
             c.setName(updated.getName());
             c.setEmail(updated.getEmail());
@@ -52,6 +58,9 @@ public class ContactController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
+        if (!repo.existsById(id)) {
+            throw new com.crm.exception.ResourceNotFoundException("Contact", id);
+        }
         repo.deleteById(id);
     }
 }

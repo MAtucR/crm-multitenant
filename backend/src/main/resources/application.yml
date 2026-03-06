@@ -5,39 +5,41 @@ spring:
   application:
     name: crm-backend
 
-  # ── Datasource principal (admin, para Flyway y provisioning) ──
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/crm}
     username: ${SPRING_DATASOURCE_USERNAME:crm}
     password: ${SPRING_DATASOURCE_PASSWORD:crm_secret}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
 
-  # ── JPA / Hibernate ──
   jpa:
     hibernate:
-      ddl-auto: validate          # Flyway maneja el DDL
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        # Multitenancy: schema-per-tenant
-        multiTenancy: SCHEMA
-        tenant_identifier_resolver: com.crm.multitenancy.TenantIdentifierResolver
-        multi_tenant_connection_provider: com.crm.multitenancy.TenantConnectionProvider
+        # BUG FIX: Hibernate 6 no acepta nombres de clase como string aquí.
+        # Los beans se registran via HibernateConfig (JpaVendorAdapter + properties).
         default_schema: public
+        format_sql: false
+        jdbc:
+          batch_size: 25
+          order_inserts: true
+          order_updates: true
     open-in-view: false
 
-  # ── Flyway (aplica migraciones en el schema de cada tenant) ──
   flyway:
-    enabled: false               # Manejado programáticamente por TenantProvisioningService
+    enabled: false
 
-  # ── OAuth2 Resource Server (Keycloak JWT) ──
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI:http://localhost:8080/realms/crm}
 
-# ── Actuator ──
 management:
   endpoints:
     web:
@@ -46,6 +48,8 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true   # /actuator/health/liveness + /actuator/health/readiness
   tracing:
     sampling:
       probability: 1.0
@@ -53,7 +57,6 @@ management:
     tags:
       application: ${spring.application.name}
 
-# ── OpenTelemetry / OTLP ──
 otel:
   exporter:
     otlp:
@@ -63,6 +66,5 @@ otel:
       service.name: crm-backend
       service.version: "1.0.0"
 
-# ── Logging JSON ──
 logging:
   config: classpath:logback-spring.xml

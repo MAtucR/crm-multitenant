@@ -1,6 +1,9 @@
 package com.crm.domain;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -19,12 +22,15 @@ public class Deal {
     private UUID id;
 
     @Column(nullable = false)
+    @NotBlank(message = "El título es obligatorio")
+    @Size(max = 255)
     private String title;
 
     private BigDecimal amount;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @NotNull
     private DealStage stage = DealStage.LEAD;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -34,10 +40,13 @@ public class Deal {
     private OffsetDateTime closedAt;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private OffsetDateTime createdAt;
 
     @UpdateTimestamp
     private OffsetDateTime updatedAt;
 
-    public enum DealStage { LEAD, QUALIFIED, PROPOSAL, NEGOTIATION, CLOSED_WON, CLOSED_LOST }
+    public enum DealStage {
+        LEAD, QUALIFIED, PROPOSAL, NEGOTIATION, CLOSED_WON, CLOSED_LOST
+    }
 }
