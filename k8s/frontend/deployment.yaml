@@ -22,7 +22,7 @@ spec:
             - containerPort: 3000
           env:
             - name: NEXTAUTH_URL
-              value: http://181.209.94.221
+              value: "http://181.209.94.221"
             - name: NEXTAUTH_SECRET
               valueFrom:
                 secretKeyRef:
@@ -36,12 +36,7 @@ spec:
                   name: frontend-secret
                   key: keycloak-secret
             - name: KEYCLOAK_ISSUER
-              # URL publica: ahora que KC_HOSTNAME esta configurado, Keycloak
-              # emite tokens con issuer=http://181.209.94.221/auth/realms/crm.
-              # NextAuth valida que el issuer del token coincida con esta URL.
-              # El pod puede alcanzar 181.209.94.221 (confirmado: wget dio 404
-              # por realm inexistente, no ECONNREFUSED -> el routing funciona).
-              value: http://181.209.94.221/auth/realms/crm
+              value: "http://181.209.94.221/auth/realms/crm"
             - name: API_URL
               value: http://crm-backend:8081
           resources:
