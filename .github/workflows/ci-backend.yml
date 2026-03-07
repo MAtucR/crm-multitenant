@@ -86,13 +86,18 @@ jobs:
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           IMAGE="${{ env.REGISTRY }}/${REPO_LOWER}/crm-backend:sha-${SHORT_SHA}"
-          sed -i "s|image: ghcr.io/.*/crm-backend:.*|image: ${IMAGE}|g" k8s/backend/deployment.yaml
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # FIX: fetch + reset al HEAD mas reciente ANTES de modificar el archivo.
+          # El patron anterior (modificar → commit → rebase) fallaba con conflict
+          # cuando backend CI y frontend CI corrían en paralelo y ambos tocaban
+          # archivos en k8s/ en el mismo ventana de tiempo.
+          # Con reset --hard garantizamos partir del estado actual de main,
+          # aplicar solo nuestro cambio puntual, y pushear sin divergencia.
+          git fetch origin main
+          git reset --hard origin/main
+          sed -i "s|image: ghcr.io/.*/crm-backend:.*|image: ${IMAGE}|g" k8s/backend/deployment.yaml
           git add k8s/backend/deployment.yaml
           git diff --staged --quiet && exit 0
           git commit -m "ci: update backend image to sha-${SHORT_SHA} [skip ci]"
-          # BUG FIX: rebase antes de push para evitar rechazo cuando frontend
-          # CI pushea al mismo tiempo y hay divergencia en main
-          git pull --rebase origin main
           git push
