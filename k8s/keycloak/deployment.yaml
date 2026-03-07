@@ -32,8 +32,6 @@ spec:
           args:
             - start-dev
             - --http-relative-path=/auth
-            # Auto-importa el realm crm al arrancar si no existe.
-            # El archivo se monta desde el ConfigMap keycloak-realm.
             - --import-realm
           ports:
             - containerPort: 8080
@@ -65,6 +63,16 @@ spec:
               value: "false"
             - name: KC_HTTP_ENABLED
               value: "true"
+            # Fuerza a Keycloak a usar la IP publica en todos los endpoints
+            # que publica en el discovery document (authorization_endpoint,
+            # token_endpoint, issuer, etc.).
+            # Sin esto, Keycloak emite URLs con el hostname interno del pod
+            # (keycloak.crm-saas.svc.cluster.local) que el browser no puede
+            # resolver -> el redirect OAuth falla con 401/ERR_NAME_NOT_RESOLVED.
+            - name: KC_HOSTNAME
+              value: "181.209.94.221"
+            - name: KC_HTTP_RELATIVE_PATH
+              value: "/auth"
           volumeMounts:
             - name: realm-config
               mountPath: /opt/keycloak/data/import
