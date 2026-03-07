@@ -2,20 +2,26 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * BUG FIX: Este archivo es el que Next.js ejecuta cuando se usa src/ directory.
- * frontend/middleware.ts en la raiz es ignorado cuando existe src/.
- *
- * No importar NADA de next-auth aqui — incompatible con Edge Runtime.
- * Verificar la cookie de sesion directamente (100% Edge Runtime safe).
- *
- * BUG FIX: Traceparent fijado en request headers, no en response headers.
- * El BFF proxy en /api/proxy/[...path]/route.ts lee el header traceparent de
- * la REQUEST entrante (req.headers.get('traceparent')). Si lo seteamos en la
- * RESPONSE (como estaba antes), el proxy nunca lo ve y el backend nunca recibe
- * el header → el tracing distribuido end-to-end estaba completamente roto.
- * Solución: NextResponse.next({ request: { headers } }) para propagar el
- * header generado al request que verán los Route Handlers posteriores.
+ * Reconstruye la URL publica real a partir de los headers que Traefik inyecta.
+ * req.url dentro del pod contiene el hostname interno del pod
+ * (ej: http://crm-frontend-68df588bcd-zgd64:3000/) en lugar de la IP/dominio
+ * publico. Traefik propaga la informacion real en x-forwarded-host y
+ * x-forwarded-proto, que usamos para armar la URL correcta.
  */
+function getPublicUrl(req: NextRequest): URL {
+  const forwaredHost = req.headers.get('x-forwarded-host');
+  const forwardedProto = req.headers.get('x-forwarded-proto') ?? 'http';
+
+  if (forwaredHost) {
+    // Reconstruir con el host publico real que Traefik conoce
+    const publicBase = `${forwardedProto}://${forwaredHost}`;
+    return new URL(req.nextUrl.pathname + req.nextUrl.search, publicBase);
+  }
+
+  // Fallback: sin proxy, usar nextUrl directamente (entorno local)
+  return req.nextUrl;
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -34,12 +40,14 @@ export function middleware(req: NextRequest) {
     req.cookies.get('__Secure-next-auth.session-token')?.value;
 
   if (!sessionToken) {
-    const signinUrl = new URL('/api/auth/signin', req.url);
-    signinUrl.searchParams.set('callbackUrl', req.url);
+    // Usar la URL publica real (no el hostname interno del pod)
+    const publicUrl = getPublicUrl(req);
+    const signinUrl = new URL('/api/auth/signin', publicUrl);
+    signinUrl.searchParams.set('callbackUrl', publicUrl.toString());
     return NextResponse.redirect(signinUrl);
   }
 
-  // Copiar headers del request entrante y añadir traceparent si no viene ya
+  // Propagar traceparent en los headers del request hacia los Route Handlers
   const requestHeaders = new Headers(req.headers);
   if (!requestHeaders.get('traceparent')) {
     const traceId = crypto.randomUUID().replace(/-/g, '');
@@ -47,7 +55,6 @@ export function middleware(req: NextRequest) {
     requestHeaders.set('traceparent', `00-${traceId}-${spanId}-01`);
   }
 
-  // Pasar los headers modificados al request para que los Route Handlers los lean
   return NextResponse.next({
     request: { headers: requestHeaders },
   });

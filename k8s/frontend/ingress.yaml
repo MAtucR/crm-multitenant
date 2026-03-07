@@ -5,8 +5,10 @@ metadata:
   namespace: crm-saas
   annotations:
     kubernetes.io/ingress.class: traefik
-    # Sin TLS para acceso local por HTTP puerto 80
-    # igual que viaja-con-moni
+    # Hace que Traefik inyecte X-Forwarded-Host con el host publico real.
+    # Sin esto Next.js ve el hostname interno del pod en req.headers y
+    # construye callbackUrls con la IP interna del pod en lugar de 181.209.94.221.
+    traefik.ingress.kubernetes.io/router.middlewares: crm-saas-trace-headers@kubernetescrd
 spec:
   rules:
     - http:
