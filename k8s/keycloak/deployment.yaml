@@ -29,7 +29,9 @@ spec:
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:24.0
-          args: ["start-dev", "--http-relative-path=/auth"]
+          args:
+            - start-dev
+            - --http-relative-path=/auth
           ports:
             - containerPort: 8080
           env:
@@ -56,8 +58,16 @@ spec:
                   key: password
             - name: KC_HOSTNAME_STRICT
               value: "false"
-            - name: KC_PROXY
-              value: edge
+            - name: KC_HOSTNAME_STRICT_HTTPS
+              value: "false"
+            # BUG FIX: KC_PROXY=edge esta deprecated en 24.0 y no propaga
+            # correctamente los headers de Traefik, causando 'Cookie not found'.
+            # KC_PROXY_HEADERS=xforwarded lee X-Forwarded-* de Traefik.
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            # Forzar HTTP para cookies (sin HTTPS no puede usar Secure)
+            - name: KC_HTTP_ENABLED
+              value: "true"
           resources:
             requests:
               cpu: 500m
