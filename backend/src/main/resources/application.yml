@@ -17,12 +17,13 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      # BUG FIX: 'validate' falla al arrancar si las tablas de tenant no existen todavia.
+      # 'update' crea las tablas automaticamente si no existen — correcto para dev/k8s.
+      # Para produccion usar Flyway (flyway.enabled: true) con migraciones versionadas.
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        # BUG FIX: Hibernate 6 no acepta nombres de clase como string aquí.
-        # Los beans se registran via HibernateConfig (JpaVendorAdapter + properties).
         default_schema: public
         format_sql: false
         jdbc:
@@ -49,7 +50,7 @@ management:
     health:
       show-details: always
       probes:
-        enabled: true   # /actuator/health/liveness + /actuator/health/readiness
+        enabled: true
   tracing:
     sampling:
       probability: 1.0
