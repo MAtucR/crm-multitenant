@@ -1,9 +1,7 @@
-# Recurso Application de Argo CD.
-# Aplicar con: kubectl apply -f k8s/argocd/application.yaml -n argocd
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: crm-saas
+  name: crm-multitenant
   namespace: argocd
   labels:
     dt.mz: CRM-SaaS
@@ -11,10 +9,12 @@ spec:
   project: default
 
   source:
-    # Apunta a este mismo repositorio, carpeta /k8s
     repoURL: https://github.com/MAtucR/crm-multitenant.git
-    targetRevision: main
+    targetRevision: HEAD
     path: k8s
+    directory:
+      recurse: true        # SIN ESTO ArgoCD solo lee la raiz de k8s/ y no entra en subdirectorios
+      exclude: 'argocd/**' # Excluir este mismo archivo para evitar loop
 
   destination:
     server: https://kubernetes.default.svc
@@ -22,8 +22,8 @@ spec:
 
   syncPolicy:
     automated:
-      prune: true       # Elimina recursos que ya no están en git
-      selfHeal: true    # Auto-corrige drifts manuales
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
