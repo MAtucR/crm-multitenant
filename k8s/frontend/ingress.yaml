@@ -5,18 +5,11 @@ metadata:
   namespace: crm-saas
   annotations:
     kubernetes.io/ingress.class: traefik
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Sin TLS para acceso local por HTTP puerto 80
+    # igual que viaja-con-moni
 spec:
-  tls:
-    - hosts:
-        - app.crm.example.com
-        - "*.crm.example.com"
-      secretName: crm-frontend-tls
   rules:
-    - host: app.crm.example.com
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix

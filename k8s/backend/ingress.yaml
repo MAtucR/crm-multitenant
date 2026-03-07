@@ -1,28 +1,15 @@
-# Ingress del backend con soporte wildcard para multi-tenant.
-# Cada tenant accede via: api.<tenant>.crm.example.com
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: crm-backend-ingress
   namespace: crm-saas
   annotations:
-    kubernetes.io/ingress.class: traefik      # k3s usa Traefik por defecto
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    # Propagar headers de trazas de Traefik al backend
-    traefik.ingress.kubernetes.io/router.middlewares: crm-saas-trace-headers@kubernetescrd
+    kubernetes.io/ingress.class: traefik
 spec:
-  tls:
-    - hosts:
-        - "*.api.crm.example.com"
-      secretName: crm-backend-tls
   rules:
-    # Wildcard: cualquier subdominio tenant llega aquí
-    - host: "*.api.crm.example.com"
-      http:
+    - http:
         paths:
-          - path: /
+          - path: /api
             pathType: Prefix
             backend:
               service:
