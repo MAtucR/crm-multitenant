@@ -1,38 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-  <!-- Appender JSON con TraceID/SpanID para Dynatrace -->
+  <!-- JSON estructurado para k8s/produccion -->
   <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <!-- BUG FIX: logstash-logback-encoder 7.4 no acepta <providers> (plural).
+         Hay que usar LogstashEncoder sin customizar providers,
+         o bien usar <provider> (singular) dentro del encoder.
+         La forma mas simple y compatible es dejar LogstashEncoder
+         con su configuracion por defecto que ya incluye traceId/spanId del MDC. -->
     <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-      <providers>
-        <timestamp/>
-        <logLevel/>
-        <loggerName/>
-        <message/>
-        <mdc/>           <!-- incluye traceId, spanId desde MDC de Micrometer -->
-        <arguments/>
-        <stackTrace/>
-      </providers>
       <customFields>{"service":"crm-backend"}</customFields>
     </encoder>
   </appender>
 
+  <!-- Consola legible para desarrollo local -->
   <springProfile name="local">
-    <!-- Legible en desarrollo -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
       <encoder>
         <pattern>%d{HH:mm:ss} %highlight(%-5level) [%blue(%X{traceId})] %cyan(%logger{36}) - %msg%n</pattern>
       </encoder>
     </appender>
-    <root level="INFO">
-      <appender-ref ref="CONSOLE"/>
-    </root>
+    <root level="INFO"><appender-ref ref="CONSOLE"/></root>
   </springProfile>
 
   <springProfile name="!local">
-    <root level="INFO">
-      <appender-ref ref="JSON"/>
-    </root>
+    <root level="INFO"><appender-ref ref="JSON"/></root>
   </springProfile>
 
 </configuration>
