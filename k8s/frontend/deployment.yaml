@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/matucr/crm-multitenant/crm-frontend:sha-664f173
+          image: ghcr.io/matucr/crm-multitenant/crm-frontend:sha-4cd13b7
           ports:
             - containerPort: 3000
           env:
