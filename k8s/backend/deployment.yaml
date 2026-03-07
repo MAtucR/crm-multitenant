@@ -25,7 +25,7 @@ spec:
       containers:
         - name: backend
           # CI actualiza este tag automáticamente en cada push a main
-          image: ghcr.io/matucrr/crm-multitenant/crm-backend:latest
+          image: ghcr.io/matucr/crm-multitenant/crm-backend:sha-b5f33f3
           ports:
             - containerPort: 8081
           env:
