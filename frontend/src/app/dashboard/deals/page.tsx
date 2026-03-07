@@ -3,8 +3,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
+/**
+ * IMPORTANTE: usar API_URL (server-side only), NO NEXT_PUBLIC_API_URL.
+ * Ver comentario en contacts/page.tsx para la explicacion completa.
+ */
 async function fetchDeals(accessToken: string, traceparent?: string) {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081';
+  const backendUrl = process.env.API_URL ?? 'http://localhost:8081';
 
   const res = await fetch(`${backendUrl}/api/deals`, {
     headers: {

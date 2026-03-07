@@ -3,8 +3,16 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
+/**
+ * IMPORTANTE: usar API_URL (server-side only), NO NEXT_PUBLIC_API_URL.
+ * NEXT_PUBLIC_ embebe el valor en el bundle del cliente y ademas no esta
+ * definida en el deployment de k8s, por lo que cae al fallback localhost:8081
+ * -> ECONNREFUSED dentro del pod del frontend.
+ * API_URL=http://crm-backend:8081 esta definida en k8s/frontend/deployment.yaml
+ * y es alcanzable via DNS interno de Kubernetes.
+ */
 async function fetchContacts(accessToken: string, traceparent?: string) {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081';
+  const backendUrl = process.env.API_URL ?? 'http://localhost:8081';
 
   const res = await fetch(`${backendUrl}/api/contacts`, {
     headers: {
@@ -12,7 +20,6 @@ async function fetchContacts(accessToken: string, traceparent?: string) {
       'Content-Type': 'application/json',
       ...(traceparent ? { traceparent } : {}),
     },
-    // RSC: no cachear, siempre fresco
     cache: 'no-store',
   });
 
