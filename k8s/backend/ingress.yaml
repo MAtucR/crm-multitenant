@@ -1,3 +1,18 @@
+# El backend NO necesita ingress externo en una arquitectura BFF.
+# El frontend (Next.js) llama al backend internamente via:
+#   http://crm-backend:8081  (DNS interno de Kubernetes)
+# El browser NUNCA llama directamente al backend.
+#
+# BUG CRITICO RESUELTO: el ingress anterior usaba path: /api, lo cual
+# hacia que Traefik interceptara TODOS los requests /api/* antes de
+# llegar al pod de Next.js, incluyendo /api/auth/signin (NextAuth) y
+# /api/proxy/* (BFF). Spring Boot devolvia 401 porque no habia JWT.
+# Next.js nunca veia esos requests -> ningun log aparecia en los pods.
+#
+# Si en el futuro se necesita acceso externo directo al backend
+# (ej: para herramientas de testing), usar paths especificos:
+#   /api/contacts, /api/deals, /api/admin
+# NUNCA el prefijo generico /api.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,7 +25,21 @@ spec:
   rules:
     - http:
         paths:
-          - path: /api
+          - path: /api/contacts
+            pathType: Prefix
+            backend:
+              service:
+                name: crm-backend
+                port:
+                  number: 8081
+          - path: /api/deals
+            pathType: Prefix
+            backend:
+              service:
+                name: crm-backend
+                port:
+                  number: 8081
+          - path: /api/admin
             pathType: Prefix
             backend:
               service:
