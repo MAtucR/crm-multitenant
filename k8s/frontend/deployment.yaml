@@ -22,8 +22,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          # BUG FIX: GHCR requiere el nombre en minusculas. MAtucR -> matucrr
-          image: ghcr.io/matucr/crm-multitenant/crm-frontend:sha-1992f76
+          image: ghcr.io/matucrr/crm-multitenant/crm-frontend:sha-1992f76
           ports:
             - containerPort: 3000
           env:
@@ -56,12 +55,13 @@ spec:
             httpGet:
               path: /api/health
               port: 3000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 15
             periodSeconds: 10
             failureThreshold: 5
           livenessProbe:
             httpGet:
               path: /api/health
               port: 3000
-            initialDelaySeconds: 20
+            initialDelaySeconds: 30
             periodSeconds: 15
+            failureThreshold: 3
