@@ -5,10 +5,11 @@ metadata:
   namespace: crm-saas
   annotations:
     kubernetes.io/ingress.class: traefik
-    # Hace que Traefik inyecte X-Forwarded-Host con el host publico real.
-    # Sin esto Next.js ve el hostname interno del pod en req.headers y
-    # construye callbackUrls con la IP interna del pod en lugar de 181.209.94.221.
-    traefik.ingress.kubernetes.io/router.middlewares: crm-saas-trace-headers@kubernetescrd
+    # Forzar entrypoint web (HTTP/80) explicitamente.
+    # Sin esto Traefik en k3s registra las rutas tambien en 'websecure' (443)
+    # y si tiene redirectToHttps global activo, las requests HTTP son
+    # redirigidas a HTTPS donde no hay certificado -> 401/error de conexion.
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   rules:
     - http:
