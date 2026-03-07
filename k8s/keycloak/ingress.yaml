@@ -5,6 +5,10 @@ metadata:
   namespace: crm-saas
   annotations:
     kubernetes.io/ingress.class: traefik
+    # FIX: Adjunta el middleware que fuerza X-Forwarded-Proto: http.
+    # Sin esto, si Traefik inyecta 'https' por defecto, Keycloak pone
+    # cookies Secure que el browser descarta en HTTP -> cookie_not_found.
+    traefik.ingress.kubernetes.io/router.middlewares: crm-saas-keycloak-http-scheme@kubernetescrd
 spec:
   rules:
     - http:

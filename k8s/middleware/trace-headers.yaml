@@ -1,12 +1,4 @@
-# Traefik Middleware: inyecta traceparent W3C si el cliente no lo manda.
-# Solo propaga headers de trazabilidad — NO toca X-Forwarded-Proto.
-#
-# BUG FIX: Se eliminó 'X-Forwarded-Proto: https' de este middleware.
-# El sitio corre en HTTP plano (sin TLS). Inyectar ese header causaba que
-# NextAuth creyera estar detrás de HTTPS y generara cookies con el prefijo
-# '__Secure-', que los browsers rechazan silenciosamente sobre HTTP.
-# Resultado: ninguna cookie de sesión se guardaba → 401 en /api/auth/signin.
-# X-Forwarded-Proto solo debe setearse cuando Traefik hace TLS termination real.
+# Middleware de trazabilidad: no toca X-Forwarded-Proto.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -16,3 +8,17 @@ spec:
   headers:
     customRequestHeaders:
       X-Forwarded-Proto: ""
+---
+# Middleware especifico para Keycloak: fuerza X-Forwarded-Proto: http.
+# Necesario porque Traefik a veces inyecta 'https' por defecto en algunos
+# builds de k3s. Al forzar 'http' explicitamente, Keycloak sabe que el
+# entorno es HTTP puro y no aplica el flag Secure en sus cookies de sesion.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: keycloak-http-scheme
+  namespace: crm-saas
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Proto: "http"

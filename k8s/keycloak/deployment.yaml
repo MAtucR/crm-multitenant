@@ -60,14 +60,15 @@ spec:
               value: "false"
             - name: KC_HOSTNAME_STRICT_HTTPS
               value: "false"
-            # BUG FIX: KC_PROXY=edge esta deprecated en 24.0 y no propaga
-            # correctamente los headers de Traefik, causando 'Cookie not found'.
-            # KC_PROXY_HEADERS=xforwarded lee X-Forwarded-* de Traefik.
-            - name: KC_PROXY_HEADERS
-              value: xforwarded
-            # Forzar HTTP para cookies (sin HTTPS no puede usar Secure)
             - name: KC_HTTP_ENABLED
               value: "true"
+            # FIX: KC_PROXY_HEADERS=xforwarded eliminado.
+            # Con esa variable Keycloak leia X-Forwarded-Proto para decidir el
+            # scheme de sus cookies. Sin TLS real, ese header no llegaba o era
+            # inconsistente -> Keycloak ponia cookies Secure sobre HTTP ->
+            # browser las descartaba -> error cookie_not_found en cada login.
+            # Sin KC_PROXY_HEADERS, Keycloak usa directamente el scheme HTTP
+            # de la conexion entrante, que es lo correcto para este entorno.
           resources:
             requests:
               cpu: 500m
