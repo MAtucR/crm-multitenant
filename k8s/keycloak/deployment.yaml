@@ -17,12 +17,22 @@ spec:
       annotations:
         dt.mz: CRM-SaaS
     spec:
+      # Esperar a que postgres este listo antes de arrancar keycloak
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do
+                echo "Esperando postgres..."
+                sleep 3
+              done
+              echo "Postgres listo!"
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:24.0
-          # BUG FIX: 'start --optimized' requiere imagen pre-buildeada con build step.
-          # Con la imagen estandar de keycloak hay que usar 'start-dev' (dev)
-          # o 'start' sin --optimized (prod, mas lento pero funciona).
           args: ["start-dev"]
           ports:
             - containerPort: 8080
