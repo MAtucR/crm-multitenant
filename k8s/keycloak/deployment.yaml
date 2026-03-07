@@ -20,7 +20,10 @@ spec:
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:24.0
-          args: ["start", "--optimized"]
+          # BUG FIX: 'start --optimized' requiere imagen pre-buildeada con build step.
+          # Con la imagen estandar de keycloak hay que usar 'start-dev' (dev)
+          # o 'start' sin --optimized (prod, mas lento pero funciona).
+          args: ["start-dev"]
           ports:
             - containerPort: 8080
           env:
@@ -45,8 +48,8 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: password
-            - name: KC_HOSTNAME
-              value: auth.crm.example.com
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
             - name: KC_PROXY
               value: edge
           resources:
@@ -60,5 +63,6 @@ spec:
             httpGet:
               path: /realms/master
               port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 10

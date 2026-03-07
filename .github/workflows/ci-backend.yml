@@ -9,7 +9,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'backend/**'
+        - 'backend/**'
 
 env:
   REGISTRY: ghcr.io
@@ -45,7 +45,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # BUG FIX: setup-buildx necesario para cache type=gha
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -85,7 +84,9 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA}"
+          # BUG FIX: forzar minusculas en el nombre de la imagen
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="${{ env.REGISTRY }}/${REPO_LOWER}/crm-backend:sha-${SHORT_SHA}"
           sed -i "s|image: ghcr.io/.*/crm-backend:.*|image: ${IMAGE}|g" k8s/backend/deployment.yaml
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

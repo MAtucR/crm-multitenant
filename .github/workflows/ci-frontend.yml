@@ -58,8 +58,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # BUG FIX: setup-buildx es necesario para usar cache type=gha.
-      # Sin esto Docker usa el driver por defecto que no soporta cache export.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -99,7 +97,10 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA}"
+          # BUG FIX: forzar minusculas en el nombre de la imagen
+          # GHCR rechaza nombres con mayusculas (InvalidImageName)
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="${{ env.REGISTRY }}/${REPO_LOWER}/crm-frontend:sha-${SHORT_SHA}"
           sed -i "s|image: ghcr.io/.*/crm-frontend:.*|image: ${IMAGE}|g" k8s/frontend/deployment.yaml
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
