@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import SidebarClient from '@/components/SidebarClient';
+import Link from 'next/link';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -15,14 +16,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="app-shell">
       <SidebarClient user={user} role={role} tenant={tenant} />
       <header className="topbar">
-        <span className="topbar-title" id="page-title">Dashboard</span>
+        <span className="topbar-title">CRM Multitenant</span>
         <div className="topbar-search">
           <span>🔍</span>
-          <span>Buscar...</span>
+          <span style={{ color: 'var(--gray-400)' }}>Buscar contactos, deals...</span>
         </div>
         <div className="topbar-actions">
-          <button className="btn-icon" title="Notificaciones">🔔</button>
-          <button className="btn-icon" title="Configuración">⚙️</button>
+          <Link href="/dashboard/reports" title="Reportes">
+            <button className="btn-icon">📊</button>
+          </Link>
+          <Link href="/dashboard/settings" title="Configuración">
+            <button className="btn-icon">⚙️</button>
+          </Link>
         </div>
       </header>
       <main className="main-content">

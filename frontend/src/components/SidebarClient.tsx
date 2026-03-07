@@ -7,6 +7,11 @@ const NAV = [
   { href: '/dashboard',          icon: '🏠', label: 'Dashboard' },
   { href: '/dashboard/contacts', icon: '👥', label: 'Contactos' },
   { href: '/dashboard/deals',    icon: '💼', label: 'Deals' },
+  { href: '/dashboard/reports',  icon: '📊', label: 'Reportes' },
+];
+
+const BOTTOM_NAV = [
+  { href: '/dashboard/settings', icon: '⚙️', label: 'Configuración' },
 ];
 
 const AVATAR_COLORS = ['#4f46e5','#0891b2','#059669','#d97706','#dc2626','#7c3aed'];
@@ -31,30 +36,41 @@ export default function SidebarClient({ user, role, tenant }: Props) {
   const displayName = user?.name ?? user?.email ?? 'Usuario';
   const color = colorForName(displayName);
 
+  function isActive(href: string) {
+    if (href === '/dashboard') return path === '/dashboard';
+    return path.startsWith(href);
+  }
+
   return (
     <aside className="sidebar">
-      {/* Logo */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">⚡</div>
         <span className="sidebar-logo-text">CRM</span>
         {tenant && <span className="sidebar-logo-badge">{tenant.toUpperCase()}</span>}
       </div>
 
-      {/* Nav */}
       <div className="sidebar-section">Menú</div>
       <nav className="sidebar-nav">
-        {NAV.map(({ href, icon, label }) => {
-          const active = href === '/dashboard' ? path === '/dashboard' : path.startsWith(href);
-          return (
-            <Link key={href} href={href} className={`sidebar-link${active ? ' active' : ''}`}>
-              <span className="icon">{icon}</span>
-              {label}
-            </Link>
-          );
-        })}
+        {NAV.map(({ href, icon, label }) => (
+          <Link key={href} href={href} className={`sidebar-link${isActive(href) ? ' active' : ''}`}>
+            <span className="icon">{icon}</span>
+            {label}
+          </Link>
+        ))}
       </nav>
 
-      {/* User */}
+      <div style={{ flex: 1 }} />
+
+      <div className="sidebar-section" style={{ marginTop: 0 }}>Cuenta</div>
+      <nav className="sidebar-nav" style={{ flex: 'none', paddingBottom: 0 }}>
+        {BOTTOM_NAV.map(({ href, icon, label }) => (
+          <Link key={href} href={href} className={`sidebar-link${isActive(href) ? ' active' : ''}`}>
+            <span className="icon">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
+
       <div className="sidebar-footer">
         <div className="user-card">
           <div className="user-avatar" style={{ background: color }}>{initials(displayName)}</div>
