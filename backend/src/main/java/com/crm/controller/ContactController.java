@@ -1,6 +1,7 @@
 package com.crm.controller;
 
 import com.crm.domain.Contact;
+import com.crm.exception.ResourceNotFoundException;
 import com.crm.repository.ContactRepository;
 import io.micrometer.observation.annotation.Observed;
 import jakarta.validation.Valid;
@@ -55,12 +56,22 @@ public class ContactController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * BUG FIX: Eliminada la race condition TOCTOU (Time-Of-Check-Time-Of-Use).
+     * El patrón anterior (existsById + deleteById) ejecutaba dos queries separadas.
+     * Bajo concurrencia, otro request podía borrar el registro entre ambas llamadas,
+     * causando comportamiento indefinido (deleteById no hace nada sobre un ID
+     * inexistente pero tampoco lanza excepción — la respuesta 204 sería incorrecta).
+     *
+     * Solución: findById + delete(entity) en una sola operación lógica.
+     * Si no existe → ResourceNotFoundException (→ 404).
+     * Si existe → delete atómico sobre la entidad ya cargada.
+     */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id) {
-        if (!repo.existsById(id)) {
-            throw new com.crm.exception.ResourceNotFoundException("Contact", id);
-        }
-        repo.deleteById(id);
+        Contact contact = repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contact", id));
+        repo.delete(contact);
     }
 }

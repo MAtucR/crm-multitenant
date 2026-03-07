@@ -6,6 +6,10 @@ import KeycloakProvider from 'next-auth/providers/keycloak';
  * Sin esto, cuando el access_token de Keycloak expira todas las llamadas
  * al backend empiezan a dar 401 silenciosamente y el usuario queda bloqueado
  * sin entender por qué hasta que cierra sesión y vuelve a entrar.
+ *
+ * MEJORA: Añadida página de signIn explícita para que cuando providers.tsx
+ * detecte RefreshAccessTokenError, el signOut() redirija al flujo de login
+ * de Keycloak en lugar de a una página 404 o en blanco.
  */
 async function refreshAccessToken(token: any) {
   try {
@@ -70,7 +74,7 @@ export const authOptions: AuthOptions = {
 
     async session({ session, token }) {
       (session as any).accessToken = token.accessToken;
-      // Propagar error al cliente para que pueda redirigir al login
+      // Propagar error al cliente para que providers.tsx pueda redirigir al login
       if (token.error) {
         (session as any).error = token.error;
       }
@@ -80,7 +84,8 @@ export const authOptions: AuthOptions = {
 
   session: { strategy: 'jwt' },
 
-  // Redirigir al login si el token no se pudo refrescar
-  events: {},
-  pages: {},
+  pages: {
+    // Ruta explícita de sign-in para que signOut({ callbackUrl }) aterrice correctamente
+    signIn: '/api/auth/signin',
+  },
 };

@@ -4,16 +4,24 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import java.io.IOException;
 
 /**
  * Interceptor de Spring MVC que:
  * 1. Extrae el claim 'tenant_id' del JWT de Keycloak.
  * 2. Lo almacena en TenantContext para que Hibernate use el schema correcto.
  * 3. Lo limpia al terminar el request (afterCompletion).
+ *
+ * BUG FIX: Antes, cuando un JWT válido no tenía el claim tenant_id, la request
+ * continuaba silenciosamente usando el schema 'public', que puede contener
+ * tablas de infraestructura sensibles (p.ej. la tabla tenants).
+ * Ahora devuelve 403 explícito para usuarios autenticados sin tenant asignado.
  */
 @Component
 public class TenantInterceptor implements HandlerInterceptor {
@@ -24,7 +32,7 @@ public class TenantInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,
-                             Object handler) {
+                             Object handler) throws IOException {
 
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
@@ -33,7 +41,11 @@ public class TenantInterceptor implements HandlerInterceptor {
                 TenantContext.setTenantId(tenantId);
                 log.debug("Tenant activo: {}", tenantId);
             } else {
-                log.warn("JWT sin claim '{}'. Usando schema public.", TENANT_CLAIM);
+                // JWT válido pero sin tenant asignado → 403, no caer al schema public
+                log.warn("JWT autenticado sin claim '{}'. Acceso denegado.", TENANT_CLAIM);
+                response.sendError(HttpStatus.FORBIDDEN.value(),
+                        "Tu cuenta no tiene un tenant asignado. Contacta al administrador.");
+                return false;
             }
         }
         return true;
