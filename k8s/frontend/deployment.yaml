@@ -22,6 +22,7 @@ spec:
             - containerPort: 3000
           env:
             - name: NEXTAUTH_URL
+              # URL publica que el browser usa para los redirects de OAuth.
               value: http://181.209.94.221
             - name: NEXTAUTH_SECRET
               valueFrom:
@@ -36,7 +37,12 @@ spec:
                   name: frontend-secret
                   key: keycloak-secret
             - name: KEYCLOAK_ISSUER
-              value: http://181.209.94.221/auth/realms/crm
+              # URL interna de Kubernetes para llamadas server-side de NextAuth
+              # (discovery, token exchange). Los pods no pueden hacer hairpin NAT
+              # a traves de la IP publica 181.209.94.221 de vuelta al cluster.
+              # El browser recibe esta URL en el id_token y la usa para validar,
+              # pero NextAuth la normaliza con NEXTAUTH_URL en el callback.
+              value: http://keycloak.crm-saas.svc.cluster.local:8080/auth/realms/crm
             - name: API_URL
               value: http://crm-backend:8081
           resources:

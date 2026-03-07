@@ -32,6 +32,9 @@ spec:
           args:
             - start-dev
             - --http-relative-path=/auth
+            # Auto-importa el realm crm al arrancar si no existe.
+            # El archivo se monta desde el ConfigMap keycloak-realm.
+            - --import-realm
           ports:
             - containerPort: 8080
           env:
@@ -62,13 +65,10 @@ spec:
               value: "false"
             - name: KC_HTTP_ENABLED
               value: "true"
-            # FIX: KC_PROXY_HEADERS=xforwarded eliminado.
-            # Con esa variable Keycloak leia X-Forwarded-Proto para decidir el
-            # scheme de sus cookies. Sin TLS real, ese header no llegaba o era
-            # inconsistente -> Keycloak ponia cookies Secure sobre HTTP ->
-            # browser las descartaba -> error cookie_not_found en cada login.
-            # Sin KC_PROXY_HEADERS, Keycloak usa directamente el scheme HTTP
-            # de la conexion entrante, que es lo correcto para este entorno.
+          volumeMounts:
+            - name: realm-config
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
           resources:
             requests:
               cpu: 500m
@@ -83,3 +83,7 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 15
             failureThreshold: 10
+      volumes:
+        - name: realm-config
+          configMap:
+            name: keycloak-realm

@@ -1,15 +1,17 @@
 {
   "realm": "crm",
   "enabled": true,
-  "sslRequired": "external",
+  "sslRequired": "none",
   "registrationAllowed": false,
   "clients": [
     {
       "clientId": "crm-frontend",
       "enabled": true,
       "publicClient": false,
+      "secret": "crm-frontend-secret",
       "redirectUris": [
         "http://localhost:3000/*",
+        "http://181.209.94.221/*",
         "https://app.crm.example.com/*"
       ],
       "webOrigins": ["*"],
