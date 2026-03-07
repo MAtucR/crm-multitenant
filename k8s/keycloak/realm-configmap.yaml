@@ -24,7 +24,9 @@ data:
           "webOrigins": ["*"],
           "standardFlowEnabled": true,
           "directAccessGrantsEnabled": false,
-          "protocol": "openid-connect"
+          "protocol": "openid-connect",
+          "defaultClientScopes": ["openid", "profile", "email", "roles", "tenant"],
+          "optionalClientScopes": ["offline_access"]
         },
         {
           "clientId": "crm-backend",
@@ -60,6 +62,81 @@ data:
       ],
       "clientScopes": [
         {
+          "name": "openid",
+          "protocol": "openid-connect",
+          "attributes": { "include.in.token.scope": "true" }
+        },
+        {
+          "name": "profile",
+          "protocol": "openid-connect",
+          "attributes": { "include.in.token.scope": "true" },
+          "protocolMappers": [
+            {
+              "name": "username",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-property-mapper",
+              "config": {
+                "userinfo.token.claim": "true",
+                "user.attribute": "username",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "claim.name": "preferred_username",
+                "jsonType.label": "String"
+              }
+            },
+            {
+              "name": "full name",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-full-name-mapper",
+              "config": {
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true"
+              }
+            }
+          ]
+        },
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "attributes": { "include.in.token.scope": "true" },
+          "protocolMappers": [
+            {
+              "name": "email",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-property-mapper",
+              "config": {
+                "userinfo.token.claim": "true",
+                "user.attribute": "email",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "claim.name": "email",
+                "jsonType.label": "String"
+              }
+            }
+          ]
+        },
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "attributes": { "include.in.token.scope": "true" },
+          "protocolMappers": [
+            {
+              "name": "realm roles",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-realm-role-mapper",
+              "config": {
+                "userinfo.token.claim": "true",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "claim.name": "realm_access.roles",
+                "jsonType.label": "String",
+                "multivalued": "true"
+              }
+            }
+          ]
+        },
+        {
           "name": "tenant",
           "protocol": "openid-connect",
           "attributes": { "include.in.token.scope": "true" },
@@ -80,5 +157,5 @@ data:
           ]
         }
       ],
-      "defaultDefaultClientScopes": ["tenant", "profile", "email", "roles"]
+      "defaultDefaultClientScopes": ["openid", "profile", "email", "roles", "tenant"]
     }
