@@ -1,36 +1,39 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 
 /**
- * BUG FIX: withAuth de next-auth causa "Cannot redefine property: __import_unsupported"
- * en Edge Runtime porque internamente importa modulos Node.js incompatibles.
- * Solucion: usar getToken() directamente, que si es Edge Runtime compatible.
+ * BUG FIX: next-auth (incluyendo getToken de next-auth/jwt) importa modulos
+ * Node.js que no son compatibles con Edge Runtime, causando:
+ * "Cannot redefine property: __import_unsupported"
+ *
+ * Solucion: no importar NADA de next-auth en middleware.
+ * Verificar la cookie de sesion directamente — 100% Edge Runtime compatible.
+ * La validacion real del JWT ocurre en cada API route via getServerSession.
  */
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Rutas publicas: no requieren autenticacion
   const isPublic =
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/_next') ||
-    pathname === '/favicon.ico' ||
+    pathname.startsWith('/favicon.ico') ||
     pathname === '/login';
 
   if (isPublic) {
     return NextResponse.next();
   }
 
-  // Verificar token JWT de NextAuth (Edge Runtime compatible)
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+  // Verificar presencia de cookie de sesion NextAuth (Edge Runtime safe)
+  // next-auth usa 'next-auth.session-token' en HTTP o '__Secure-next-auth.session-token' en HTTPS
+  const sessionToken =
+    req.cookies.get('next-auth.session-token')?.value ||
+    req.cookies.get('__Secure-next-auth.session-token')?.value;
 
-  if (!token) {
-    const loginUrl = new URL('/api/auth/signin', req.url);
-    loginUrl.searchParams.set('callbackUrl', req.url);
-    return NextResponse.redirect(loginUrl);
+  if (!sessionToken) {
+    const signinUrl = new URL('/api/auth/signin', req.url);
+    signinUrl.searchParams.set('callbackUrl', req.url);
+    return NextResponse.redirect(signinUrl);
   }
 
   const response = NextResponse.next();
