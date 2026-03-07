@@ -1,6 +1,7 @@
-# Traefik Middleware: propaga headers W3C Trace Context hacia el backend.
-# Referenciado en el Ingress del backend.
-apiVersion: traefik.containo.us/v1alpha1
+# Traefik Middleware: propaga X-Forwarded-Proto al backend.
+# BUG FIX: traefik.containo.us/v1alpha1 es el API group viejo (Traefik < 2.10).
+# k3s usa traefik.io/v1alpha1 desde Traefik v2.10+.
+apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: trace-headers
@@ -9,5 +10,3 @@ spec:
   headers:
     customRequestHeaders:
       X-Forwarded-Proto: "https"
-    # Traefik propaga traceparent/tracestate nativamente si
-    # se habilita el plugin de tracing en su config.
