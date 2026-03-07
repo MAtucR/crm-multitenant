@@ -14,20 +14,15 @@ spec:
     metadata:
       labels:
         app: crm-frontend
-      annotations:
-        metrics.dynatrace.com/scrape: 'true'
-        metrics.dynatrace.com/port: '3000'
-        metrics.dynatrace.com/path: '/api/health'
-        dt.mz: 'CRM-SaaS'
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/matucr/crm-multitenant/crm-frontend:sha-aa73ab8
+          image: ghcr.io/matucrr/crm-multitenant/crm-frontend:sha-aa73ab8
           ports:
             - containerPort: 3000
           env:
             - name: NEXTAUTH_URL
-              value: https://app.crm.example.com
+              value: http://181.209.94.221
             - name: NEXTAUTH_SECRET
               valueFrom:
                 secretKeyRef:
@@ -41,7 +36,7 @@ spec:
                   name: frontend-secret
                   key: keycloak-secret
             - name: KEYCLOAK_ISSUER
-              value: http://keycloak:8080/realms/crm
+              value: http://181.209.94.221/auth/realms/crm
             - name: API_URL
               value: http://crm-backend:8081
           resources:

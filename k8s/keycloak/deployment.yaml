@@ -14,10 +14,7 @@ spec:
     metadata:
       labels:
         app: keycloak
-      annotations:
-        dt.mz: CRM-SaaS
     spec:
-      # Esperar a que postgres este listo antes de arrancar keycloak
       initContainers:
         - name: wait-for-postgres
           image: busybox:1.36
@@ -29,11 +26,10 @@ spec:
                 echo "Esperando postgres..."
                 sleep 3
               done
-              echo "Postgres listo!"
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:24.0
-          args: ["start-dev"]
+          args: ["start-dev", "--http-relative-path=/auth"]
           ports:
             - containerPort: 8080
           env:
@@ -71,7 +67,7 @@ spec:
               memory: 1.5Gi
           readinessProbe:
             httpGet:
-              path: /realms/master
+              path: /auth/realms/master
               port: 8080
             initialDelaySeconds: 60
             periodSeconds: 15
