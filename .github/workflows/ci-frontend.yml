@@ -97,13 +97,15 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          # BUG FIX: forzar minusculas en el nombre de la imagen
-          # GHCR rechaza nombres con mayusculas (InvalidImageName)
           REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           IMAGE="${{ env.REGISTRY }}/${REPO_LOWER}/crm-frontend:sha-${SHORT_SHA}"
           sed -i "s|image: ghcr.io/.*/crm-frontend:.*|image: ${IMAGE}|g" k8s/frontend/deployment.yaml
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add k8s/frontend/deployment.yaml
-          git diff --staged --quiet || git commit -m "ci: update frontend image to sha-${SHORT_SHA} [skip ci]"
+          git diff --staged --quiet && exit 0
+          git commit -m "ci: update frontend image to sha-${SHORT_SHA} [skip ci]"
+          # BUG FIX: rebase antes de push para evitar rechazo cuando backend
+          # CI pushea al mismo tiempo y hay divergencia en main
+          git pull --rebase origin main
           git push
