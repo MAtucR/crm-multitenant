@@ -24,7 +24,7 @@ postgresql:
   enabled: true
   persistence:
     enabled: true
-    storageClass: "local-path"   # storage class por defecto en k3s
+    storageClass: "local-path"
     size: 8Gi
   resources:
     requests:
@@ -91,6 +91,7 @@ zabbixWeb:
 
 # ----------------------------------------------------------
 # Zabbix Agent 2 (DaemonSet - un pod por nodo)
+# Variables nativas del chart - no usar extraEnv para estas
 # ----------------------------------------------------------
 zabbixAgent:
   enabled: true
