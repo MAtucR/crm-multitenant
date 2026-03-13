@@ -4,10 +4,8 @@
 # Acceso: http://181.209.94.221:30081
 # =============================================================
 
-# -- Tag global de imagen (aplica a todos los componentes)
 zabbixImageTag: ubuntu-7.2-latest
 
-# -- Credenciales centralizadas de base de datos
 db_access:
   unifiedSecretName: zabbix-db-secret
   unifiedSecretAutoCreate: true
@@ -55,6 +53,11 @@ zabbixServer:
       value: "1"
     - name: ZBX_STARTHTTPPOLLERS
       value: "1"
+    # Deshabilitar Java Gateway para evitar error StartJavaPollers
+    - name: ZBX_JAVAGATEWAY_ENABLE
+      value: "false"
+    - name: ZBX_STARTJAVAPOLLERS
+      value: "0"
   resources:
     requests:
       memory: "256Mi"
@@ -64,8 +67,7 @@ zabbixServer:
       cpu: "1000m"
 
 # ----------------------------------------------------------
-# Zabbix Web UI
-# NodePort 30081 -> NAT 30081 -> http://181.209.94.221:30081
+# Zabbix Web UI - NodePort 30081
 # ----------------------------------------------------------
 zabbixWeb:
   enabled: true
@@ -90,12 +92,13 @@ zabbixWeb:
       cpu: "500m"
 
 # ----------------------------------------------------------
-# Zabbix Agent 2 (DaemonSet - un pod por nodo)
+# Zabbix Agent 2 (DaemonSet)
+# ZBX_ACTIVE_ALLOW: false para evitar error de ServerActive 0.0.0.0/0
 # ----------------------------------------------------------
 zabbixAgent:
   enabled: true
   ZBX_PASSIVE_ALLOW: true
-  ZBX_ACTIVE_ALLOW: true
+  ZBX_ACTIVE_ALLOW: false
   ZBX_DEBUGLEVEL: 3
   ZBX_TIMEOUT: 4
   resources:
