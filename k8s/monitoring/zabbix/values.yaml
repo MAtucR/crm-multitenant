@@ -18,7 +18,7 @@ db_access:
   postgres_db: zabbix
 
 # ----------------------------------------------------------
-# PostgreSQL - usar la version default del chart (15)
+# PostgreSQL
 # ----------------------------------------------------------
 postgresql:
   enabled: true
@@ -105,20 +105,6 @@ zabbixAgent:
     limits:
       memory: "256Mi"
       cpu: "200m"
-  extraVolumeMounts:
-    - name: proc
-      mountPath: /host/proc
-      readOnly: true
-    - name: sys
-      mountPath: /host/sys
-      readOnly: true
-  extraVolumes:
-    - name: proc
-      hostPath:
-        path: /proc
-    - name: sys
-      hostPath:
-        path: /sys
 
 # ----------------------------------------------------------
 # Zabbix Webservice
