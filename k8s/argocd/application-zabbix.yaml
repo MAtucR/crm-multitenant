@@ -1,7 +1,8 @@
 # =============================================================
 # ArgoCD Application - Zabbix Full Stack (Helm)
 # Stack: Server + PostgreSQL + Web UI + Agent2 DaemonSet
-# Repo: https://zabbix-community.github.io/helm-zabbix
+# Repo: zabbix-community/helm-zabbix
+# URL: http://181.209.94.221:30081
 # =============================================================
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -16,7 +17,6 @@ metadata:
 spec:
   project: default
 
-  # Multi-source: Helm chart (zabbix-community) + values desde este repo
   sources:
     - repoURL: https://zabbix-community.github.io/helm-zabbix
       chart: zabbix
@@ -42,7 +42,6 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
-      - ServerSideApply=true
     retry:
       limit: 3
       backoff:

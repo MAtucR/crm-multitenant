@@ -1,25 +1,30 @@
 # =============================================================
 # Zabbix Helm Chart Values - k3s / crm-multitenant
-# Chart: zabbix-community/helm-zabbix
-# Stack: Server + PostgreSQL + Web UI + Agent2 DaemonSet
-# Acceso: http://181.209.94.221:30081  (NAT 30081 -> 30081)
+# Chart: zabbix-community/zabbix v4.4.1
+# Acceso: http://181.209.94.221:30081
 # =============================================================
+
+# -- Tag global de imagen (aplica a todos los componentes)
+zabbixImageTag: ubuntu-7.2-latest
+
+# -- Credenciales centralizadas de base de datos
+db_access:
+  unifiedSecretName: zabbix-db-secret
+  unifiedSecretAutoCreate: true
+  db_server_host: zabbix-postgresql
+  db_server_port: "5432"
+  postgres_user: zabbix
+  postgres_password: zabbix
+  postgres_db: zabbix
 
 # ----------------------------------------------------------
 # PostgreSQL
 # ----------------------------------------------------------
 postgresql:
   enabled: true
-  image:
-    repository: postgres
-    tag: "16"
-    pullPolicy: IfNotPresent
-  postgresqlUsername: zabbix
-  postgresqlPassword: zabbix
-  postgresqlDatabase: zabbix
   persistence:
     enabled: true
-    storageClass: "local-path"
+    storageClass: "local-path"   # storage class por defecto en k3s
     size: 8Gi
   resources:
     requests:
@@ -34,11 +39,11 @@ postgresql:
 # ----------------------------------------------------------
 zabbixServer:
   enabled: true
-  image:
-    repository: zabbix/zabbix-server-pgsql
-    tag: ubuntu-7.2-latest
-    pullPolicy: IfNotPresent
   replicaCount: 1
+  podAntiAffinity: false
+  service:
+    type: ClusterIP
+    port: 10051
   extraEnv:
     - name: ZBX_DEBUGLEVEL
       value: "3"
@@ -46,17 +51,10 @@ zabbixServer:
       value: "30"
     - name: ZBX_STARTPOLLERS
       value: "5"
-    - name: ZBX_STARTPOLLERSUNREACHABLE
-      value: "1"
-    - name: ZBX_STARTPINGERS
-      value: "1"
     - name: ZBX_STARTDISCOVERERS
       value: "1"
     - name: ZBX_STARTHTTPPOLLERS
       value: "1"
-  service:
-    type: ClusterIP
-    port: 10051
   resources:
     requests:
       memory: "256Mi"
@@ -71,20 +69,16 @@ zabbixServer:
 # ----------------------------------------------------------
 zabbixWeb:
   enabled: true
-  image:
-    repository: zabbix/zabbix-web-nginx-pgsql
-    tag: ubuntu-7.2-latest
-    pullPolicy: IfNotPresent
   replicaCount: 1
+  service:
+    type: NodePort
+    port: 80
+    nodePort: 30081
   extraEnv:
     - name: PHP_TZ
       value: "America/Argentina/Buenos_Aires"
     - name: ZBX_SERVER_NAME
       value: "Zabbix k3s"
-  service:
-    type: NodePort
-    port: 80
-    nodePort: 30081
   ingress:
     enabled: false
   resources:
@@ -100,26 +94,10 @@ zabbixWeb:
 # ----------------------------------------------------------
 zabbixAgent:
   enabled: true
-  image:
-    repository: zabbix/zabbix-agent2
-    tag: ubuntu-7.2-latest
-    pullPolicy: IfNotPresent
-  extraEnv:
-    - name: ZBX_HOSTNAME
-      value: "Assigned by cluster"
-    - name: ZBX_PASSIVE_ALLOW
-      value: "true"
-    - name: ZBX_ACTIVE_ALLOW
-      value: "true"
-    - name: ZBX_DEBUGLEVEL
-      value: "3"
-    - name: ZBX_TIMEOUT
-      value: "30"
-  hostNetwork: false
-  hostPID: false
-  securityContext:
-    privileged: false
-    runAsUser: 0
+  ZBX_PASSIVE_ALLOW: true
+  ZBX_ACTIVE_ALLOW: true
+  ZBX_DEBUGLEVEL: 3
+  ZBX_TIMEOUT: 4
   resources:
     requests:
       memory: "64Mi"
@@ -143,10 +121,11 @@ zabbixAgent:
         path: /sys
 
 # ----------------------------------------------------------
-# kube-state-metrics
+# Zabbix Webservice (requerido por el chart)
 # ----------------------------------------------------------
-kube-state-metrics:
+zabbixWebService:
   enabled: true
+  replicaCount: 1
   resources:
     requests:
       memory: "64Mi"
