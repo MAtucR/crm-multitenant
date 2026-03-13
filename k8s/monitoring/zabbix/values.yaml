@@ -2,11 +2,11 @@
 # Zabbix Helm Chart Values - k3s / crm-multitenant
 # Chart: zabbix-community/helm-zabbix
 # Stack: Server + PostgreSQL + Web UI + Agent2 DaemonSet
-# Docs: https://github.com/zabbix-community/helm-zabbix
+# Acceso: http://181.209.94.221:8081  (NAT 8081 -> NodePort 30081)
 # =============================================================
 
 # ----------------------------------------------------------
-# PostgreSQL (base de datos del Zabbix Server)
+# PostgreSQL
 # ----------------------------------------------------------
 postgresql:
   enabled: true
@@ -19,7 +19,7 @@ postgresql:
   postgresqlDatabase: zabbix
   persistence:
     enabled: true
-    storageClass: "local-path"   # storage class por defecto en k3s
+    storageClass: "local-path"
     size: 8Gi
   resources:
     requests:
@@ -66,7 +66,9 @@ zabbixServer:
       cpu: "1000m"
 
 # ----------------------------------------------------------
-# Zabbix Web UI (Nginx + PHP-FPM)
+# Zabbix Web UI
+# NodePort 30081 -> nattear puerto 8081 a este
+# URL final: http://181.209.94.221:8081
 # ----------------------------------------------------------
 zabbixWeb:
   enabled: true
@@ -81,17 +83,11 @@ zabbixWeb:
     - name: ZBX_SERVER_NAME
       value: "Zabbix k3s"
   service:
-    type: ClusterIP
+    type: NodePort
     port: 80
+    nodePort: 30081
   ingress:
-    enabled: true
-    annotations:
-      kubernetes.io/ingress.class: traefik
-    hosts:
-      - host: zabbix.crm.local   # Cambiar por tu dominio real o usar port-forward
-        paths:
-          - path: /
-            pathType: Prefix
+    enabled: false
   resources:
     requests:
       memory: "128Mi"
@@ -101,7 +97,7 @@ zabbixWeb:
       cpu: "500m"
 
 # ----------------------------------------------------------
-# Zabbix Agent 2 (DaemonSet - un pod por nodo del cluster)
+# Zabbix Agent 2 (DaemonSet - un pod por nodo)
 # ----------------------------------------------------------
 zabbixAgent:
   enabled: true
