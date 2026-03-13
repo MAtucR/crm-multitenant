@@ -1,46 +1,139 @@
 # =============================================================
 # Zabbix Helm Chart Values - k3s / crm-multitenant
+# Stack completo: Server + PostgreSQL + Web UI + Agent2 DaemonSet
 # Ref: https://git.zabbix.com/projects/ZT/repos/kubernetes-helm
 # =============================================================
 
 nameOverride: "zabbix"
 namespaceOverride: "monitoring"
 
-# -- Service Account creado manualmente via rbac.yaml
+# -- Service Account creado via rbac.yaml
 serviceAccount:
   create: false
   name: zabbix
 
 # ----------------------------------------------------------
-# Zabbix Proxy (modo activo -> conecta al Zabbix Server)
+# PostgreSQL (base de datos del Zabbix Server)
 # ----------------------------------------------------------
-zabbixProxy:
+postgresql:
   enabled: true
   image:
-    repository: zabbix/zabbix-proxy-sqlite3
+    repository: postgres
+    tag: 16-alpine
+    pullPolicy: IfNotPresent
+
+  auth:
+    postgresPassword: "zabbix"
+    username: "zabbix"
+    password: "zabbix"
+    database: "zabbix"
+
+  primary:
+    persistence:
+      enabled: true
+      storageClass: "local-path"   # storage class por defecto en k3s
+      size: 8Gi
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# ----------------------------------------------------------
+# Zabbix Server
+# ----------------------------------------------------------
+zabbixServer:
+  enabled: true
+  image:
+    repository: zabbix/zabbix-server-pgsql
     tag: alpine-7.2-latest
     pullPolicy: IfNotPresent
   replicaCount: 1
 
   env:
-    # ⚠️  Reemplazar con la IP/hostname real de tu Zabbix Server
-    - name: ZBX_SERVER_HOST
-      value: "ZABBIX_SERVER_IP_OR_HOSTNAME"
-    - name: ZBX_SERVER_PORT
-      value: "10051"
-    # Nombre del proxy tal como esta registrado en Zabbix Server
-    - name: ZBX_HOSTNAME
-      value: "k3s-zabbix-proxy"
-    - name: ZBX_PROXYMODE
-      value: "0"          # 0 = activo, 1 = pasivo
+    - name: DB_SERVER_HOST
+      value: "zabbix-postgresql"   # Service name de PostgreSQL
+    - name: DB_SERVER_PORT
+      value: "5432"
+    - name: POSTGRES_USER
+      value: "zabbix"
+    - name: POSTGRES_PASSWORD
+      value: "zabbix"
+    - name: POSTGRES_DB
+      value: "zabbix"
     - name: ZBX_DEBUGLEVEL
       value: "3"
     - name: ZBX_TIMEOUT
       value: "30"
-    - name: ZBX_CONFIGFREQUENCY
-      value: "120"
-    - name: ZBX_DATASENDERFREQUENCY
+    - name: ZBX_STARTPOLLERS
+      value: "5"
+    - name: ZBX_STARTPOLLERSUNREACHABLE
       value: "1"
+    - name: ZBX_STARTPINGERS
+      value: "1"
+    - name: ZBX_STARTDISCOVERERS
+      value: "1"
+    - name: ZBX_STARTHTTPPOLLERS
+      value: "1"
+
+  service:
+    type: ClusterIP
+    port: 10051
+
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+# ----------------------------------------------------------
+# Zabbix Web UI (Nginx + PHP-FPM)
+# ----------------------------------------------------------
+zabbixWeb:
+  enabled: true
+  image:
+    repository: zabbix/zabbix-web-nginx-pgsql
+    tag: alpine-7.2-latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+
+  env:
+    - name: DB_SERVER_HOST
+      value: "zabbix-postgresql"
+    - name: DB_SERVER_PORT
+      value: "5432"
+    - name: POSTGRES_USER
+      value: "zabbix"
+    - name: POSTGRES_PASSWORD
+      value: "zabbix"
+    - name: POSTGRES_DB
+      value: "zabbix"
+    - name: ZBX_SERVER_HOST
+      value: "zabbix-server"       # Service name del Zabbix Server
+    - name: ZBX_SERVER_PORT
+      value: "10051"
+    - name: PHP_TZ
+      value: "America/Argentina/Buenos_Aires"
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  # Ingress para acceder a la UI desde fuera del cluster
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: traefik
+    hosts:
+      - host: zabbix.crm.local   # Cambiar por tu dominio real
+        paths:
+          - path: /
+            pathType: Prefix
 
   resources:
     requests:
@@ -50,12 +143,8 @@ zabbixProxy:
       memory: "512Mi"
       cpu: "500m"
 
-  service:
-    type: ClusterIP
-    port: 10051
-
 # ----------------------------------------------------------
-# Zabbix Agent 2 (DaemonSet - un pod por nodo)
+# Zabbix Agent 2 (DaemonSet - un pod por nodo del cluster)
 # ----------------------------------------------------------
 zabbixAgent:
   enabled: true
@@ -64,10 +153,9 @@ zabbixAgent:
     tag: alpine-7.2-latest
     pullPolicy: IfNotPresent
 
-  # El agente reporta al proxy local (no al server directamente)
   env:
     - name: ZBX_SERVER_HOST
-      value: "zabbix-proxy"    # Service name del proxy dentro del cluster
+      value: "zabbix-server"       # Service name del Zabbix Server
     - name: ZBX_SERVER_PORT
       value: "10051"
     - name: ZBX_HOSTNAME
@@ -78,6 +166,8 @@ zabbixAgent:
       value: "true"
     - name: ZBX_DEBUGLEVEL
       value: "3"
+    - name: ZBX_TIMEOUT
+      value: "30"
 
   hostNetwork: false
   hostPID: false
@@ -94,6 +184,7 @@ zabbixAgent:
       memory: "256Mi"
       cpu: "200m"
 
+  # Acceso a /proc y /sys del nodo host para metricas de sistema
   extraVolumeMounts:
     - name: proc
       mountPath: /host/proc
@@ -111,7 +202,7 @@ zabbixAgent:
         path: /sys
 
 # ----------------------------------------------------------
-# kube-state-metrics (expone metricas del estado del cluster)
+# kube-state-metrics (estado de recursos del cluster)
 # ----------------------------------------------------------
 kube-state-metrics:
   enabled: true
@@ -126,14 +217,8 @@ kube-state-metrics:
       cpu: "200m"
 
 # ----------------------------------------------------------
-# Zabbix Server embebido - DESHABILITADO
-# (usamos Zabbix Server externo)
+# Zabbix Proxy - DESHABILITADO
+# (no se necesita, el server esta en el mismo cluster)
 # ----------------------------------------------------------
-zabbixServer:
-  enabled: false
-
-zabbixWeb:
-  enabled: false
-
-postgresql:
+zabbixProxy:
   enabled: false
