@@ -18,7 +18,7 @@ db_access:
   postgres_db: zabbix
 
 # ----------------------------------------------------------
-# PostgreSQL
+# PostgreSQL - usar la version default del chart (15)
 # ----------------------------------------------------------
 postgresql:
   enabled: true
@@ -91,7 +91,6 @@ zabbixWeb:
 
 # ----------------------------------------------------------
 # Zabbix Agent 2 (DaemonSet - un pod por nodo)
-# Variables nativas del chart - no usar extraEnv para estas
 # ----------------------------------------------------------
 zabbixAgent:
   enabled: true
@@ -122,7 +121,7 @@ zabbixAgent:
         path: /sys
 
 # ----------------------------------------------------------
-# Zabbix Webservice (requerido por el chart)
+# Zabbix Webservice
 # ----------------------------------------------------------
 zabbixWebService:
   enabled: true
