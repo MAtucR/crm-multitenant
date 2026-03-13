@@ -1,7 +1,7 @@
 # =============================================================
 # ArgoCD Application - Zabbix Full Stack (Helm)
 # Stack: Server + PostgreSQL + Web UI + Agent2 DaemonSet
-# Sincronizado desde: https://github.com/MAtucR/crm-multitenant
+# Repo: https://zabbix-community.github.io/helm-zabbix
 # =============================================================
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -16,11 +16,11 @@ metadata:
 spec:
   project: default
 
-  # Multi-source: Helm chart oficial + values desde este repo
+  # Multi-source: Helm chart (zabbix-community) + values desde este repo
   sources:
-    - repoURL: https://zabbix.github.io/helm-charts
-      chart: zabbix-helm-chrt
-      targetRevision: 1.4.0
+    - repoURL: https://zabbix-community.github.io/helm-zabbix
+      chart: zabbix
+      targetRevision: 4.4.1
       helm:
         releaseName: zabbix
         valueFiles:

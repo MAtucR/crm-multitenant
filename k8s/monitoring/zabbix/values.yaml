@@ -1,16 +1,9 @@
 # =============================================================
 # Zabbix Helm Chart Values - k3s / crm-multitenant
-# Stack completo: Server + PostgreSQL + Web UI + Agent2 DaemonSet
-# Ref: https://git.zabbix.com/projects/ZT/repos/kubernetes-helm
+# Chart: zabbix-community/helm-zabbix
+# Stack: Server + PostgreSQL + Web UI + Agent2 DaemonSet
+# Docs: https://github.com/zabbix-community/helm-zabbix
 # =============================================================
-
-nameOverride: "zabbix"
-namespaceOverride: "monitoring"
-
-# -- Service Account creado via rbac.yaml
-serviceAccount:
-  create: false
-  name: zabbix
 
 # ----------------------------------------------------------
 # PostgreSQL (base de datos del Zabbix Server)
@@ -19,21 +12,15 @@ postgresql:
   enabled: true
   image:
     repository: postgres
-    tag: 16-alpine
+    tag: "16"
     pullPolicy: IfNotPresent
-
-  auth:
-    postgresPassword: "zabbix"
-    username: "zabbix"
-    password: "zabbix"
-    database: "zabbix"
-
-  primary:
-    persistence:
-      enabled: true
-      storageClass: "local-path"   # storage class por defecto en k3s
-      size: 8Gi
-
+  postgresqlUsername: zabbix
+  postgresqlPassword: zabbix
+  postgresqlDatabase: zabbix
+  persistence:
+    enabled: true
+    storageClass: "local-path"   # storage class por defecto en k3s
+    size: 8Gi
   resources:
     requests:
       memory: "256Mi"
@@ -49,21 +36,10 @@ zabbixServer:
   enabled: true
   image:
     repository: zabbix/zabbix-server-pgsql
-    tag: alpine-7.2-latest
+    tag: ubuntu-7.2-latest
     pullPolicy: IfNotPresent
   replicaCount: 1
-
-  env:
-    - name: DB_SERVER_HOST
-      value: "zabbix-postgresql"   # Service name de PostgreSQL
-    - name: DB_SERVER_PORT
-      value: "5432"
-    - name: POSTGRES_USER
-      value: "zabbix"
-    - name: POSTGRES_PASSWORD
-      value: "zabbix"
-    - name: POSTGRES_DB
-      value: "zabbix"
+  extraEnv:
     - name: ZBX_DEBUGLEVEL
       value: "3"
     - name: ZBX_TIMEOUT
@@ -78,11 +54,9 @@ zabbixServer:
       value: "1"
     - name: ZBX_STARTHTTPPOLLERS
       value: "1"
-
   service:
     type: ClusterIP
     port: 10051
-
   resources:
     requests:
       memory: "256Mi"
@@ -98,43 +72,26 @@ zabbixWeb:
   enabled: true
   image:
     repository: zabbix/zabbix-web-nginx-pgsql
-    tag: alpine-7.2-latest
+    tag: ubuntu-7.2-latest
     pullPolicy: IfNotPresent
   replicaCount: 1
-
-  env:
-    - name: DB_SERVER_HOST
-      value: "zabbix-postgresql"
-    - name: DB_SERVER_PORT
-      value: "5432"
-    - name: POSTGRES_USER
-      value: "zabbix"
-    - name: POSTGRES_PASSWORD
-      value: "zabbix"
-    - name: POSTGRES_DB
-      value: "zabbix"
-    - name: ZBX_SERVER_HOST
-      value: "zabbix-server"       # Service name del Zabbix Server
-    - name: ZBX_SERVER_PORT
-      value: "10051"
+  extraEnv:
     - name: PHP_TZ
       value: "America/Argentina/Buenos_Aires"
-
+    - name: ZBX_SERVER_NAME
+      value: "Zabbix k3s"
   service:
     type: ClusterIP
-    port: 8080
-
-  # Ingress para acceder a la UI desde fuera del cluster
+    port: 80
   ingress:
     enabled: true
     annotations:
       kubernetes.io/ingress.class: traefik
     hosts:
-      - host: zabbix.crm.local   # Cambiar por tu dominio real
+      - host: zabbix.crm.local   # Cambiar por tu dominio real o usar port-forward
         paths:
           - path: /
             pathType: Prefix
-
   resources:
     requests:
       memory: "128Mi"
@@ -150,14 +107,9 @@ zabbixAgent:
   enabled: true
   image:
     repository: zabbix/zabbix-agent2
-    tag: alpine-7.2-latest
+    tag: ubuntu-7.2-latest
     pullPolicy: IfNotPresent
-
-  env:
-    - name: ZBX_SERVER_HOST
-      value: "zabbix-server"       # Service name del Zabbix Server
-    - name: ZBX_SERVER_PORT
-      value: "10051"
+  extraEnv:
     - name: ZBX_HOSTNAME
       value: "Assigned by cluster"
     - name: ZBX_PASSIVE_ALLOW
@@ -168,14 +120,11 @@ zabbixAgent:
       value: "3"
     - name: ZBX_TIMEOUT
       value: "30"
-
   hostNetwork: false
   hostPID: false
-
   securityContext:
     privileged: false
     runAsUser: 0
-
   resources:
     requests:
       memory: "64Mi"
@@ -183,8 +132,6 @@ zabbixAgent:
     limits:
       memory: "256Mi"
       cpu: "200m"
-
-  # Acceso a /proc y /sys del nodo host para metricas de sistema
   extraVolumeMounts:
     - name: proc
       mountPath: /host/proc
@@ -192,7 +139,6 @@ zabbixAgent:
     - name: sys
       mountPath: /host/sys
       readOnly: true
-
   extraVolumes:
     - name: proc
       hostPath:
@@ -202,12 +148,10 @@ zabbixAgent:
         path: /sys
 
 # ----------------------------------------------------------
-# kube-state-metrics (estado de recursos del cluster)
+# kube-state-metrics
 # ----------------------------------------------------------
 kube-state-metrics:
   enabled: true
-  image:
-    tag: v2.13.0
   resources:
     requests:
       memory: "64Mi"
@@ -218,7 +162,6 @@ kube-state-metrics:
 
 # ----------------------------------------------------------
 # Zabbix Proxy - DESHABILITADO
-# (no se necesita, el server esta en el mismo cluster)
 # ----------------------------------------------------------
 zabbixProxy:
   enabled: false
