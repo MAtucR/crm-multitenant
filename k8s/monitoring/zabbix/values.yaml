@@ -2,7 +2,7 @@
 # Zabbix Helm Chart Values - k3s / crm-multitenant
 # Chart: zabbix-community/helm-zabbix
 # Stack: Server + PostgreSQL + Web UI + Agent2 DaemonSet
-# Acceso: http://181.209.94.221:8081  (NAT 8081 -> NodePort 30081)
+# Acceso: http://181.209.94.221:30081  (NAT 30081 -> 30081)
 # =============================================================
 
 # ----------------------------------------------------------
@@ -67,8 +67,7 @@ zabbixServer:
 
 # ----------------------------------------------------------
 # Zabbix Web UI
-# NodePort 30081 -> nattear puerto 8081 a este
-# URL final: http://181.209.94.221:8081
+# NodePort 30081 -> NAT 30081 -> http://181.209.94.221:30081
 # ----------------------------------------------------------
 zabbixWeb:
   enabled: true
